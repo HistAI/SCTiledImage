@@ -1,61 +1,45 @@
 # SCTiledImage
-Tiled Image view for iOS: display images with multiple layers of zoom / tiles (as GoogleMaps does for instance).  
-This allows to load very large images at high resolution, and as the user zooms or scrolls, more details are loaded.  
-
-The image must be cut into tiles of multiple levels of zoom.  
-The level 0 is the highest resolution level (when user scrolls to the maximum), each tile of the next level is composed of 2x2 tiles of the lower level (e.g. 4 tiles of level 0 will make 1 tile at level 1).
+SCTiledImage view for iOS allows you to display images with multiple layers of zoom or tiles, similar to Google Maps. This feature enables the loading of very large, high-resolution images. As the user zooms or scrolls, more details are loaded. The image must be cut into tiles of multiple levels of zoom, with level 0 being the highest resolution level. Each tile of the next level is composed of 2x2 tiles of the lower level.
 
 ### Installation
-SCTiledImage is available through CocoaPods, to install it simply add the following line to your Podfile:
-```ruby
-   pod "SCTiledImage"
-```
+SCTiledImage is available through SPM
 
 ### Features
-SCTiledImage supports the following functionalities:
-- Display large image as tiles with multiple layers of zoom, in a subclass of UIScrollView
-- Double tap or two-finger tap to zoom on the image
-- Custom tile sizes (common size is 256 x 256) and number of zoom levels
-- Image can be displayed with 90, 180 or -90 degrees rotation
-- Lazy loading of images (e.g. from Network or Local Disk), with in-memory cache
-- Background image (low resolution) displayed while tiles are loading
-- Delegate callbacks when user zooms or scrolls
-
-### Example
-You can download this repository and build the demo app to see an example (original image is 9112 x 4677 = ~42 mega pixels)
+SCTiledImage supports:
+- Displaying large images as tiles with multiple layers of zoom
+- Custom tile sizes and number of zoom levels
+- Gestures to zoom, pan and rotate images
+- Lazy loading of images, with in-memory cache
+- Displaying a low-resolution background image while tiles are loading
 
 ### Usage
-1. Implement a `SCTiledImageScrollView`, either in code or in Interface Builder: this will be the view that displays the image
-2. Instantiate an object that implements the `SCTiledImageViewDataSource` protocol, and pass it to your `SCTiledImageScrollView` instance through its `.set(dataSource:)` method
-3. Optionally, you can set a `SCTiledImageScrollViewDelegate` to the `SCTiledImageScrollView` instance to be notified when user scrolls or zooms
-
-See the example for more details of implementation, and for an example of tiles (inside the "HoiAn" folder).
+1. Implement `SCTiledImageViewController`, either in code or in Interface Builder. This will be the controller that handles the gestures and sets up the view that displays the image.
+2. Instantiate an object that implements the `SCTiledImageViewDataSource` protocol, and pass it to your `SCTiledImageViewController` instance through its `.setup(dataSource:)` method. Optionally, you can specify an initial scale factor and backgound color.
+3. Use `.reset()` method to reset the image view to the default scale, rotation, and position.
 
 ##### DataSource
-The `SCTiledImageViewDataSource` protocol requires the following to be imlpemented:
+The `SCTiledImageViewDataSource` protocol requires the following:
 ```swift
-  weak var delegate: SCTiledImageViewDataSourceDelegate?
-  // delegate to call once tile images have been loaded (from network, local disk...)
+  // delegate to call once tile images have been loaded
+  weak var delegate: SCTiledImageViewDataSourceDelegate? { get set }
 
-  let imageSize: CGSize
   // size of the full resolution image
+  var imageSize: CGSize { get }
 
-  let tileSize: CGSize
   // size of the tiles
+  var tileSize: CGSize { get }
 
-  let zoomLevels: Int
   // number of zoom levels
+  var zoomLevels: Int { get }
+  
+  // used to return the optional background image to display when tiles are loading
+  func backgroundImage() async -> UIImage?
+  
+  // retrieves the image for the given tile
+  func tileImage(for tile: SCTile) async -> UIImage?
 
-  func requestTiles(_ tiles: [SCTile])
-  // called by the SCTiledImageScrollView when some tiles are need, this function must retrieve these tiles (SCTile = row, column, level) and then call the delegate once a tile is ready
-
-  func requestBackgroundImage(completionHandler: @escaping (UIImage?) -> ())
-  // called by the SCTiledImageScrollView, used to return the optional background image to display when tiles are loading (low resolution version of the full image)
-
-  func getCachedImage(for tile: SCTile) -> UIImage?
-  // if images can be retrieve synchronously (because already cached) then this function can return them directly to improve rendering speed
-  // in this case, it will replace requestTiles(_ tiles: [SCTile])
-  // if not, return nil and requestTiles(_ tiles: [SCTile]) will be used
+  // returns cached image for given tile if available, otherwise returns nil
+  func cachedTileImage(for tile: SCTile) -> UIImage?
 ```
 
 ## License
