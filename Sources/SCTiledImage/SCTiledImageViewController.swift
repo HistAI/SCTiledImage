@@ -17,7 +17,15 @@ public class SCTiledImageViewController: UIViewController {
     private var centerDiff: CGPoint?
     private var initialScale: CGFloat = 1
     private var overlayView: UIView?
-    private var overlayViewInitialTransform: CGAffineTransform?
+    private var overlayViewRelativeInitialTransform: CGAffineTransform?
+
+    private var defaultScale: CGFloat? {
+        guard let imageSize = containerView.dataSource?.imageSize else { return nil }
+
+        let minContainerSize = min(view.bounds.width, view.bounds.height)
+        let minCanvasSize = max(imageSize.width, imageSize.height)
+        return (minContainerSize / minCanvasSize) * initialScale
+    }
 
     // MARK: - Life Cycle
 
@@ -39,10 +47,7 @@ public class SCTiledImageViewController: UIViewController {
 
         view.addSubview(containerView)
 
-        let minContainerSize = min(view.bounds.width, view.bounds.height)
-        let minCanvasSize = max(dataSource.imageSize.width, dataSource.imageSize.height)
-        let defaultScale = (minContainerSize / minCanvasSize) * initialScale
-        containerView.transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale)
+        containerView.transform = CGAffineTransform(scaleX: defaultScale!, y: defaultScale!)
 
         containerView.center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
 
@@ -60,11 +65,7 @@ public class SCTiledImageViewController: UIViewController {
     }
 
     public func reset() {
-        guard let dataSource = containerView.dataSource else { return }
-
-        let minContainerSize = min(view.bounds.width, view.bounds.height)
-        let minCanvasSize = max(dataSource.imageSize.width, dataSource.imageSize.height)
-        let defaultScale = (minContainerSize / minCanvasSize) * initialScale
+        guard let defaultScale else { return }
 
         UIView.animate(withDuration: Constants.AnimationDuration.default, animations: { [weak self] in
             guard let self else { return }
@@ -72,8 +73,15 @@ public class SCTiledImageViewController: UIViewController {
             containerView.transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale)
             containerView.center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
 
-            if let overlayView, let overlayViewInitialTransform {
-                overlayView.transform = overlayViewInitialTransform
+            if let overlayView, let overlayViewRelativeInitialTransform {
+                overlayView.transform = CGAffineTransform(
+                    overlayViewRelativeInitialTransform.a * defaultScale,
+                    overlayViewRelativeInitialTransform.b * defaultScale,
+                    overlayViewRelativeInitialTransform.c * defaultScale,
+                    overlayViewRelativeInitialTransform.d * defaultScale,
+                    overlayViewRelativeInitialTransform.tx * defaultScale,
+                    overlayViewRelativeInitialTransform.ty * defaultScale
+                )
                 overlayView.center = containerView.center
             }
         }, completion: { [weak self] _ in
@@ -102,7 +110,17 @@ public class SCTiledImageViewController: UIViewController {
         self.overlayView = overlayView
         self.overlayView!.layer.zPosition = 999
         view.addSubview(self.overlayView!)
-        overlayViewInitialTransform = overlayView.transform
+
+        if let defaultScale {
+            overlayViewRelativeInitialTransform = CGAffineTransform(
+                overlayView.transform.a / defaultScale,
+                overlayView.transform.b / defaultScale,
+                overlayView.transform.c / defaultScale,
+                overlayView.transform.d / defaultScale,
+                overlayView.transform.tx / defaultScale,
+                overlayView.transform.ty / defaultScale
+            )
+        }
 
         self.overlayView!.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -165,9 +183,16 @@ public class SCTiledImageViewController: UIViewController {
             y: recognizer.location(in: containerView).y - containerView.bounds.midY
         )
 
+        let scale: CGFloat
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            scale = 1 + (recognizer.scale - 1) / 5
+        } else {
+            scale = recognizer.scale
+        }
+
         let transform = containerView.transform
             .translatedBy(x: pinchCenter.x, y: pinchCenter.y)
-            .scaledBy(x: recognizer.scale, y: recognizer.scale)
+            .scaledBy(x: scale, y: scale)
             .translatedBy(x: -pinchCenter.x, y: -pinchCenter.y)
 
         containerView.transform = transform
@@ -180,7 +205,7 @@ public class SCTiledImageViewController: UIViewController {
 
             let overlayTransform = overlayView.transform
                 .translatedBy(x: overlayPinchCenter.x, y: overlayPinchCenter.y)
-                .scaledBy(x: recognizer.scale, y: recognizer.scale)
+                .scaledBy(x: scale, y: scale)
                 .translatedBy(x: -overlayPinchCenter.x, y: -overlayPinchCenter.y)
 
             overlayView.transform = overlayTransform
