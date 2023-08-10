@@ -11,6 +11,15 @@ import UIKit
 
 public class SCTiledImageViewController: UIViewController {
 
+    // MARK: - Internal Properties
+
+    public var onImageTransformationChange: ((Bool) -> Void)?
+    public private(set) var isImageTransformed = false {
+        didSet {
+            onImageTransformationChange?(isImageTransformed)
+        }
+    }
+
     // MARK: - Private Properties
 
     private var containerView = SCTiledImageContainerView()
@@ -87,6 +96,7 @@ public class SCTiledImageViewController: UIViewController {
         }, completion: { [weak self] _ in
             guard let self else { return }
             centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
+            isImageTransformed = false
         })
     }
 
@@ -173,6 +183,8 @@ public class SCTiledImageViewController: UIViewController {
         containerView.center = CGPoint(x: containerView.center.x + translation.x, y: containerView.center.y + translation.y)
         recognizer.setTranslation(CGPoint.zero, in: recognizer.view)
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
+
+        isImageTransformed = true
     }
 
     @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
@@ -214,6 +226,8 @@ public class SCTiledImageViewController: UIViewController {
         recognizer.scale = 1.0
 
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
+
+        isImageTransformed = true
     }
 
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
@@ -248,6 +262,8 @@ public class SCTiledImageViewController: UIViewController {
         recognizer.rotation = 0
 
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
+
+        isImageTransformed = true
     }
 }
 
