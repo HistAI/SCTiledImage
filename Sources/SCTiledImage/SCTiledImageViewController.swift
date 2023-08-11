@@ -11,8 +11,9 @@ import UIKit
 
 public class SCTiledImageViewController: UIViewController {
 
-    // MARK: - Internal Properties
+    // MARK: - Public Properties
 
+    public var isRecenteringOnOrientationChangeEnabled = false
     public var onImageTransformationChange: ((Bool) -> Void)?
     public private(set) var isImageTransformed = false {
         didSet {
@@ -165,17 +166,8 @@ public class SCTiledImageViewController: UIViewController {
 
     @objc private func orientationChanged() {
         let orientation = UIDevice.current.orientation
-        guard orientation.isPortrait || orientation.isLandscape, let centerDiff else { return }
-
-        Task {
-            await MainActor.run {
-                UIView.animate(withDuration: Constants.AnimationDuration.default) { [weak self] in
-                    guard let self else { return }
-                    containerView.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
-                    overlayView?.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
-                }
-            }
-        }
+        guard orientation.isPortrait || orientation.isLandscape, isRecenteringOnOrientationChangeEnabled else { return }
+        recenter()
     }
 
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
