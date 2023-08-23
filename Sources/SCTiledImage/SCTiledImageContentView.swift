@@ -14,34 +14,49 @@ public final class SCTiledImageContentView: UIView {
 
     // MARK: - Private Properties
 
-    private let tiledImageView: SCTiledImageView
-    private let backgroundImageView: UIImageView
+    private let tiledImageView: SCTiledImageView = {
+        let view = SCTiledImageView()
+        return view
+    }()
 
-    // MARK: - Life Cycle
+    private let backgroundImageView: UIImageView = {
+        let view = UIImageView()
+        view.contentMode = .scaleAspectFit
+        return view
+    }()
+
+    // MARK: - Initializers
 
     public init(dataSource: SCTiledImageViewDataSource) {
-        tiledImageView = SCTiledImageView()
+        super.init(frame: .zero)
+
         tiledImageView.setup(dataSource: dataSource)
-        backgroundImageView = UIImageView(frame: tiledImageView.bounds)
-
-        super.init(frame: tiledImageView.frame)
-
-        backgroundImageView.contentMode = .scaleAspectFit
-
-        Task {
-            let image = await dataSource.backgroundImage()
-
-            await MainActor.run {
-                backgroundImageView.image = image
-            }
-        }
-
-        addSubview(backgroundImageView)
-        addSubview(tiledImageView)
+        frame = tiledImageView.frame
+        fetchBackgroundImage(from: dataSource)
+        setupSubviews()
     }
 
     @available(*, unavailable)
     public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    // MARK: - Private Helpers
+
+    private func fetchBackgroundImage(from dataSource: SCTiledImageViewDataSource) {
+        Task { [weak self] in
+            if let image = await dataSource.backgroundImage() {
+                await MainActor.run {
+                    self?.backgroundImageView.image = image
+                    self?.backgroundImageView.frame = self?.tiledImageView.bounds ?? .zero
+                }
+            }
+        }
+    }
+
+    private func setupSubviews() {
+        addSubview(backgroundImageView)
+        addSubview(tiledImageView)
+    }
 }
+

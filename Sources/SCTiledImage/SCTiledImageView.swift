@@ -29,12 +29,6 @@ public final class SCTiledImageView: UIView {
 
     // MARK: - Life Cycle
 
-    deinit {
-        layer.contents = nil
-        layer.delegate = nil
-        layer.removeFromSuperlayer()
-    }
-
     override public func draw(_ rect: CGRect) {
         let context = UIGraphicsGetCurrentContext()!
         let scaleX = context.ctm.a / UIScreen.main.scale
@@ -103,10 +97,10 @@ public final class SCTiledImageView: UIView {
                 await withTaskGroup(of: Void.self) { group in
                     for tile in tilesToRequest {
                         group.addTask { [weak self] in
-                            guard let self, let image = await dataSource.tileImage(for: tile) else { return }
+                            guard let image = await self?.dataSource.tileImage(for: tile) else { return }
 
-                            await MainActor.run {
-                                self.dataSource.delegate?.didRetrieve(image: image, for: tile)
+                            await MainActor.run { [weak self] in
+                                self?.dataSource.delegate?.didRetrieve(image: image, for: tile)
                             }
                         }
                     }
@@ -195,15 +189,11 @@ extension SCTiledImageView: SCTiledImageViewDataSourceDelegate {
     // MARK: - Internal Methods
 
     public func didRetrieve(image: UIImage, for tile: SCTile) {
-        Task {
-            let cacheKey = SCTiledImageView.cacheKey(forLevel: tile.level, column: tile.column, row: tile.row)
-            if let cachedTile = tileCache.object(forKey: cacheKey as NSString) as SCDrawableTile? {
-                cachedTile.image = image
+        let cacheKey = SCTiledImageView.cacheKey(forLevel: tile.level, column: tile.column, row: tile.row)
 
-                await MainActor.run {
-                    setNeedsDisplay(cachedTile.tileRect)
-                }
-            }
+        if let cachedTile = tileCache.object(forKey: cacheKey as NSString) as SCDrawableTile? {
+            cachedTile.image = image
+            setNeedsDisplay(cachedTile.tileRect)
         }
     }
 }
