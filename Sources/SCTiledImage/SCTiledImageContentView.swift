@@ -59,4 +59,3 @@ public final class SCTiledImageContentView: UIView {
         addSubview(tiledImageView)
     }
 }
-
