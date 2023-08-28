@@ -26,8 +26,8 @@ public class SCTiledImageViewController: UIViewController {
     private var containerView = SCTiledImageContainerView()
     private var centerDiff: CGPoint?
     private var initialScale: CGFloat = 1
-    private var overlayView: UIView?
-    private var overlayViewRelativeInitialTransform: CGAffineTransform?
+    private var overlayViews: [UIView] = []
+    private var overlayViewsRelativeInitialTransforms: [CGAffineTransform] = []
 
     private var defaultScale: CGFloat? {
         guard let imageSize = containerView.dataSource?.imageSize else { return nil }
@@ -83,7 +83,7 @@ public class SCTiledImageViewController: UIViewController {
             containerView.transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale)
             containerView.center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
 
-            if let overlayView, let overlayViewRelativeInitialTransform {
+            for (overlayView, overlayViewRelativeInitialTransform) in zip(overlayViews, overlayViewsRelativeInitialTransforms) {
                 overlayView.transform = CGAffineTransform(
                     overlayViewRelativeInitialTransform.a * defaultScale,
                     overlayViewRelativeInitialTransform.b * defaultScale,
@@ -109,46 +109,68 @@ public class SCTiledImageViewController: UIViewController {
                 UIView.animate(withDuration: Constants.AnimationDuration.default) { [weak self] in
                     guard let self else { return }
                     containerView.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
-                    overlayView?.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
+                    for overlayView in overlayViews {
+                        overlayView.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
+                    }
                 }
             }
         }
     }
 
-    public func addOverlayView(_ overlayView: UIView) {
-        removeOverlayView()
+    public func addOverlayView(_ overlayView: UIView, isTrueSize: Bool = true) {
+        guard let defaultScale else { return }
+        removeOverlayView(overlayView)
 
-        self.overlayView = overlayView
-        self.overlayView!.layer.zPosition = 999
-        view.addSubview(self.overlayView!)
+        let previousOverlayView = overlayViews.last
+        overlayViews.append(overlayView)
+        overlayView.layer.zPosition = (previousOverlayView?.layer.zPosition ?? 999) + 1
+        view.addSubview(overlayView)
 
-        if let defaultScale {
-            overlayViewRelativeInitialTransform = CGAffineTransform(
-                overlayView.transform.a / defaultScale,
-                overlayView.transform.b / defaultScale,
-                overlayView.transform.c / defaultScale,
-                overlayView.transform.d / defaultScale,
-                overlayView.transform.tx / defaultScale,
-                overlayView.transform.ty / defaultScale
-            )
+        overlayViewsRelativeInitialTransforms.append(CGAffineTransform(
+            overlayView.transform.a / defaultScale,
+            overlayView.transform.b / defaultScale,
+            overlayView.transform.c / defaultScale,
+            overlayView.transform.d / defaultScale,
+            overlayView.transform.tx / defaultScale,
+            overlayView.transform.ty / defaultScale
+        ))
+
+        if isTrueSize {
+            overlayView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                overlayView.topAnchor.constraint(equalTo: containerView.topAnchor),
+                overlayView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+                overlayView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+                overlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            ])
+        } else {
+            overlayView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                overlayView.widthAnchor.constraint(equalToConstant: view.frame.width),
+                overlayView.heightAnchor.constraint(equalToConstant: view.frame.height),
+                overlayView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+                overlayView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+            ])
         }
-
-        self.overlayView!.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            self.overlayView!.topAnchor.constraint(equalTo: containerView.topAnchor),
-            self.overlayView!.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            self.overlayView!.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            self.overlayView!.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-        ])
     }
 
-    public func removeOverlayView() {
-        overlayView?.removeFromSuperview()
-        overlayView = nil
+    public func removeOverlayView(_ overlayView: UIView?) {
+        guard let overlayView else { return }
+
+        if overlayViews.contains(overlayView) {
+            overlayView.removeFromSuperview()
+            overlayViews.removeAll(where: { $0 == overlayView })
+        }
     }
 
     public func removeContainerView() {
         containerView.removeFromSuperview()
+    }
+
+    public func isUserInteractionEnabledForOverlays(_ isEnabled: Bool) {
+        for overlayView in overlayViews {
+            overlayView.isUserInteractionEnabled = isEnabled
+        }
     }
 
     // MARK: - Private Methods
@@ -201,7 +223,7 @@ public class SCTiledImageViewController: UIViewController {
 
         containerView.transform = transform
 
-        if let overlayView {
+        for overlayView in overlayViews {
             let overlayPinchCenter = CGPoint(
                 x: recognizer.location(in: overlayView).x - overlayView.bounds.midX,
                 y: recognizer.location(in: overlayView).y - overlayView.bounds.midY
@@ -237,7 +259,7 @@ public class SCTiledImageViewController: UIViewController {
 
         containerView.transform = transform
 
-        if let overlayView {
+        for overlayView in overlayViews {
             let overlayRotationCenter = CGPoint(
                 x: recognizer.location(in: overlayView).x - overlayView.bounds.midX,
                 y: recognizer.location(in: overlayView).y - overlayView.bounds.midY
