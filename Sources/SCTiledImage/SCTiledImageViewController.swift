@@ -27,7 +27,7 @@ public class SCTiledImageViewController: UIViewController {
     private var centerDiff: CGPoint?
     private var initialScale: CGFloat = 1
     private var overlayViews: [UIView] = []
-    private var overlayViewsRelativeInitialTransforms: [CGAffineTransform] = []
+    private var overlayViewsRelativeInitialTransforms: [Int: CGAffineTransform] = [:]
 
     private var defaultScale: CGFloat? {
         guard let imageSize = containerView.dataSource?.imageSize else { return nil }
@@ -58,12 +58,12 @@ public class SCTiledImageViewController: UIViewController {
         view.addSubview(containerView)
 
         containerView.transform = CGAffineTransform(scaleX: defaultScale!, y: defaultScale!)
-
         containerView.center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
-
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
 
         setupGestureRecognizers()
+
+        isImageTransformed = false
 
         NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
         NotificationCenter.default.addObserver(
@@ -80,19 +80,22 @@ public class SCTiledImageViewController: UIViewController {
         UIView.animate(withDuration: Constants.AnimationDuration.default, animations: { [weak self] in
             guard let self else { return }
 
+            let center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
             containerView.transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale)
-            containerView.center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
+            containerView.center = center
 
-            for (overlayView, overlayViewRelativeInitialTransform) in zip(overlayViews, overlayViewsRelativeInitialTransforms) {
-                overlayView.transform = CGAffineTransform(
-                    overlayViewRelativeInitialTransform.a * defaultScale,
-                    overlayViewRelativeInitialTransform.b * defaultScale,
-                    overlayViewRelativeInitialTransform.c * defaultScale,
-                    overlayViewRelativeInitialTransform.d * defaultScale,
-                    overlayViewRelativeInitialTransform.tx * defaultScale,
-                    overlayViewRelativeInitialTransform.ty * defaultScale
-                )
-                overlayView.center = containerView.center
+            for overlayView in overlayViews {
+                if let overlayViewRelativeInitialTransform = overlayViewsRelativeInitialTransforms[overlayView.hash] {
+                    overlayView.transform = CGAffineTransform(
+                        overlayViewRelativeInitialTransform.a * defaultScale,
+                        overlayViewRelativeInitialTransform.b * defaultScale,
+                        overlayViewRelativeInitialTransform.c * defaultScale,
+                        overlayViewRelativeInitialTransform.d * defaultScale,
+                        overlayViewRelativeInitialTransform.tx * defaultScale,
+                        overlayViewRelativeInitialTransform.ty * defaultScale
+                    )
+                    overlayView.center = center
+                }
             }
         }, completion: { [weak self] _ in
             guard let self else { return }
@@ -108,9 +111,11 @@ public class SCTiledImageViewController: UIViewController {
             await MainActor.run {
                 UIView.animate(withDuration: Constants.AnimationDuration.default) { [weak self] in
                     guard let self else { return }
-                    containerView.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
+
+                    let center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
+                    containerView.center = center
                     for overlayView in overlayViews {
-                        overlayView.center = CGPoint(x: view.center.x + centerDiff.x, y: view.center.y + centerDiff.y)
+                        overlayView.center = center
                     }
                 }
             }
@@ -118,7 +123,10 @@ public class SCTiledImageViewController: UIViewController {
     }
 
     public func addOverlayView(_ overlayView: UIView, isTrueSize: Bool = true) {
-        guard let defaultScale else { return }
+        guard let defaultScale,
+              !view.subviews.contains(overlayView),
+              view.subviews.contains(containerView),
+              containerView.dataSource != nil else { return }
         removeOverlayView(overlayView)
 
         let previousOverlayView = overlayViews.last
@@ -126,14 +134,14 @@ public class SCTiledImageViewController: UIViewController {
         overlayView.layer.zPosition = (previousOverlayView?.layer.zPosition ?? 999) + 1
         view.addSubview(overlayView)
 
-        overlayViewsRelativeInitialTransforms.append(CGAffineTransform(
+        overlayViewsRelativeInitialTransforms[overlayView.hash] = CGAffineTransform(
             overlayView.transform.a / defaultScale,
             overlayView.transform.b / defaultScale,
             overlayView.transform.c / defaultScale,
             overlayView.transform.d / defaultScale,
             overlayView.transform.tx / defaultScale,
             overlayView.transform.ty / defaultScale
-        ))
+        )
 
         if isTrueSize {
             overlayView.translatesAutoresizingMaskIntoConstraints = false
@@ -159,6 +167,7 @@ public class SCTiledImageViewController: UIViewController {
 
         if overlayViews.contains(overlayView) {
             overlayView.removeFromSuperview()
+            overlayViewsRelativeInitialTransforms.removeValue(forKey: overlayView.hash)
             overlayViews.removeAll(where: { $0 == overlayView })
         }
     }
@@ -194,8 +203,14 @@ public class SCTiledImageViewController: UIViewController {
 
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
         let translation = recognizer.translation(in: recognizer.view)
-        containerView.center = CGPoint(x: containerView.center.x + translation.x, y: containerView.center.y + translation.y)
-        recognizer.setTranslation(CGPoint.zero, in: recognizer.view)
+        let center = CGPoint(x: containerView.center.x + translation.x, y: containerView.center.y + translation.y)
+        containerView.center = center
+
+        for overlayView in overlayViews {
+            overlayView.center = center
+        }
+
+        recognizer.setTranslation(.zero, in: recognizer.view)
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
 
         isImageTransformed = true
