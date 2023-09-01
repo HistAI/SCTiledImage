@@ -11,6 +11,16 @@ import UIKit
 
 public class SCTiledImageViewController: UIViewController {
 
+    // MARK: - OverlayPosition
+
+    public enum OverlayPosition {
+
+        // MARK: - Cases
+
+        case top
+        case bottom
+    }
+
     // MARK: - Public Properties
 
     public var isRecenteringOnOrientationChangeEnabled = false
@@ -46,9 +56,8 @@ public class SCTiledImageViewController: UIViewController {
 
     // MARK: - Public Methods
 
-    public func setup(dataSource: SCTiledImageViewDataSource, initialScale: CGFloat = 1, backgroundColor: UIColor = .systemBackground) {
+    public func setup(dataSource: SCTiledImageViewDataSource, initialScale: CGFloat = 1) {
         self.initialScale = initialScale
-        view.backgroundColor = backgroundColor
 
         removeContainerView()
 
@@ -122,16 +131,25 @@ public class SCTiledImageViewController: UIViewController {
         }
     }
 
-    public func addOverlayView(_ overlayView: UIView, isTrueSize: Bool = true) {
+    public func addOverlayView(_ overlayView: UIView, position: OverlayPosition, isTrueSize: Bool = true) {
         guard let defaultScale,
               !view.subviews.contains(overlayView),
               view.subviews.contains(containerView),
               containerView.dataSource != nil else { return }
         removeOverlayView(overlayView)
 
-        let previousOverlayView = overlayViews.last
+        switch position {
+        case .top:
+            let previousTopOverlayView = overlayViews.max(by: { $0.layer.zPosition > $1.layer.zPosition })
+            let zPosition = max(previousTopOverlayView?.layer.zPosition ?? 999, 999) + 1
+            overlayView.layer.zPosition = zPosition
+        case .bottom:
+            let previousBottomOverlayView = overlayViews.min(by: { $0.layer.zPosition < $1.layer.zPosition })
+            let zPosition = min(previousBottomOverlayView?.layer.zPosition ?? .zero, .zero) - 1
+            overlayView.layer.zPosition = zPosition
+        }
+
         overlayViews.append(overlayView)
-        overlayView.layer.zPosition = (previousOverlayView?.layer.zPosition ?? 999) + 1
         view.addSubview(overlayView)
 
         overlayViewsRelativeInitialTransforms[overlayView.hash] = CGAffineTransform(
@@ -153,9 +171,11 @@ public class SCTiledImageViewController: UIViewController {
             ])
         } else {
             overlayView.translatesAutoresizingMaskIntoConstraints = false
+            let screenBounds = view.window?.windowScene?.screen.bounds ?? .zero
+            let sideSize = max(screenBounds.width, screenBounds.height)
             NSLayoutConstraint.activate([
-                overlayView.widthAnchor.constraint(equalToConstant: view.frame.width),
-                overlayView.heightAnchor.constraint(equalToConstant: view.frame.height),
+                overlayView.widthAnchor.constraint(equalToConstant: sideSize),
+                overlayView.heightAnchor.constraint(equalToConstant: sideSize),
                 overlayView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
                 overlayView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
             ])
