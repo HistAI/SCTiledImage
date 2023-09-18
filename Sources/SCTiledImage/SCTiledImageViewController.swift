@@ -31,6 +31,14 @@ public class SCTiledImageViewController: UIViewController {
         }
     }
 
+    public var defaultScale: CGFloat? {
+        guard let imageSize = containerView.dataSource?.imageSize else { return nil }
+
+        let minContainerSize = min(view.bounds.width, view.bounds.height)
+        let minCanvasSize = max(imageSize.width, imageSize.height)
+        return (minContainerSize / minCanvasSize) * initialScale
+    }
+
     // MARK: - Private Properties
 
     private var containerView = SCTiledImageContainerView()
@@ -38,14 +46,6 @@ public class SCTiledImageViewController: UIViewController {
     private var initialScale: CGFloat = 1
     private var overlayViews: [UIView] = []
     private var overlayViewsRelativeInitialTransforms: [Int: CGAffineTransform] = [:]
-
-    private var defaultScale: CGFloat? {
-        guard let imageSize = containerView.dataSource?.imageSize else { return nil }
-
-        let minContainerSize = min(view.bounds.width, view.bounds.height)
-        let minCanvasSize = max(imageSize.width, imageSize.height)
-        return (minContainerSize / minCanvasSize) * initialScale
-    }
 
     // MARK: - Life Cycle
 
@@ -171,11 +171,10 @@ public class SCTiledImageViewController: UIViewController {
             ])
         } else {
             overlayView.translatesAutoresizingMaskIntoConstraints = false
-            let screenBounds = view.window?.windowScene?.screen.bounds ?? .zero
-            let sideSize = max(screenBounds.width, screenBounds.height)
+            let imageSize = containerView.dataSource?.imageSize ?? .zero
             NSLayoutConstraint.activate([
-                overlayView.widthAnchor.constraint(equalToConstant: sideSize),
-                overlayView.heightAnchor.constraint(equalToConstant: sideSize),
+                overlayView.widthAnchor.constraint(equalToConstant: imageSize.width * defaultScale),
+                overlayView.heightAnchor.constraint(equalToConstant: imageSize.height * defaultScale),
                 overlayView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
                 overlayView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
             ])
