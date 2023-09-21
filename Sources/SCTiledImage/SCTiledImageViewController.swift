@@ -201,6 +201,41 @@ public class SCTiledImageViewController: UIViewController {
         }
     }
 
+    public func zoomAndScroll(to point: CGPoint, withScale zoomLevel: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
+        guard let defaultScale else { return }
+
+        let center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
+        let newCenter = CGPoint(
+            x: center.x + point.x * defaultScale * zoomLevel + offset.x,
+            y: center.y + point.y * defaultScale * zoomLevel + offset.y
+        )
+
+        let transform = CGAffineTransform(scaleX: zoomLevel * defaultScale, y: zoomLevel * defaultScale)
+
+        let performTransform = { [weak self] in
+            guard let self else { return }
+
+            containerView.center = newCenter
+            containerView.transform = transform
+
+            for overlayView in overlayViews {
+                overlayView.center = newCenter
+                overlayView.transform = transform
+            }
+        }
+
+        if animated {
+            UIView.animate(withDuration: Constants.AnimationDuration.default) {
+                performTransform()
+            }
+        } else {
+            performTransform()
+        }
+
+        centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
+        isImageTransformed = true
+    }
+
     // MARK: - Private Methods
 
     private func setupGestureRecognizers() {
