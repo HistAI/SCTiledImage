@@ -83,10 +83,10 @@ public class SCTiledImageViewController: UIViewController {
         )
     }
 
-    public func reset() {
+    public func reset(animated: Bool = true, completion: (() -> Void)? = nil) {
         guard let defaultScale else { return }
 
-        UIView.animate(withDuration: Constants.AnimationDuration.default, animations: { [weak self] in
+        UIView.animate(withDuration: animated ? Constants.AnimationDuration.default : .zero, animations: { [weak self] in
             guard let self else { return }
 
             let center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
@@ -110,6 +110,7 @@ public class SCTiledImageViewController: UIViewController {
             guard let self else { return }
             centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
             isImageTransformed = false
+            completion?()
         })
     }
 
@@ -201,16 +202,16 @@ public class SCTiledImageViewController: UIViewController {
         }
     }
 
-    public func zoomAndScroll(to point: CGPoint, withScale zoomLevel: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
-        guard let defaultScale else { return }
+    public func zoomAndScroll(to point: CGPoint, withScale scale: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
+        guard let defaultScale, let imageSize = containerView.dataSource?.imageSize else { return }
+
+        let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).scaledBy(x: scale, y: scale)
 
         let center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
         let newCenter = CGPoint(
-            x: center.x + point.x * defaultScale * zoomLevel + offset.x,
-            y: center.y + point.y * defaultScale * zoomLevel + offset.y
+            x: center.x + (imageSize.width / 2 - point.x) * defaultScale * scale + offset.x,
+            y: center.y + (imageSize.height / 2 - point.y) * defaultScale * scale + offset.y
         )
-
-        let transform = CGAffineTransform(scaleX: zoomLevel * defaultScale, y: zoomLevel * defaultScale)
 
         let performTransform = { [weak self] in
             guard let self else { return }
