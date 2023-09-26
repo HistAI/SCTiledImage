@@ -24,19 +24,26 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Public Properties
 
     public var isRecenteringOnOrientationChangeEnabled = false
+    public var onCenterOffsetChange: ((CGPoint) -> Void)?
     public var onImageTransformationChange: ((Bool) -> Void)?
     public private(set) var isImageTransformed = false {
         didSet {
             onImageTransformationChange?(isImageTransformed)
+            onCenterOffsetChange?(centerOffset)
         }
     }
 
     public var defaultScale: CGFloat? {
         guard let imageSize = containerView.dataSource?.imageSize else { return nil }
-
         let minContainerSize = min(view.bounds.width, view.bounds.height)
         let minCanvasSize = max(imageSize.width, imageSize.height)
         return (minContainerSize / minCanvasSize) * initialScale
+    }
+
+    public var centerOffset: CGPoint {
+        let initialCenter = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
+        let centerDiff = CGPoint(x: containerView.center.x - initialCenter.x, y: containerView.center.y - initialCenter.y)
+        return CGPoint(x: initialCenter.x + centerDiff.x, y: initialCenter.y + centerDiff.y)
     }
 
     // MARK: - Private Properties
@@ -235,6 +242,13 @@ public class SCTiledImageViewController: UIViewController {
 
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
         isImageTransformed = true
+    }
+
+    public func centerCoordinatesInContainer(offset: CGPoint = .zero) -> CGPoint {
+        let initialCenter = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
+        let withOffset = CGPoint(x: initialCenter.x + offset.x, y: initialCenter.y + offset.y)
+        let centerInContainer = view.convert(withOffset, to: containerView)
+        return centerInContainer
     }
 
     // MARK: - Private Methods
