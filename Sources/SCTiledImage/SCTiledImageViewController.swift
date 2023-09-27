@@ -227,8 +227,17 @@ public class SCTiledImageViewController: UIViewController {
             containerView.transform = transform
 
             for overlayView in overlayViews {
-                overlayView.center = newCenter
-                overlayView.transform = transform
+                if let overlayViewRelativeInitialTransform = overlayViewsRelativeInitialTransforms[overlayView.hash] {
+                    overlayView.transform = CGAffineTransform(
+                        overlayViewRelativeInitialTransform.a * defaultScale * scale,
+                        overlayViewRelativeInitialTransform.b * defaultScale * scale,
+                        overlayViewRelativeInitialTransform.c * defaultScale * scale,
+                        overlayViewRelativeInitialTransform.d * defaultScale * scale,
+                        overlayViewRelativeInitialTransform.tx * defaultScale * scale,
+                        overlayViewRelativeInitialTransform.ty * defaultScale * scale
+                    )
+                    overlayView.center = newCenter
+                }
             }
         }
 
