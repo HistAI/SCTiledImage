@@ -24,6 +24,7 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Public Properties
 
     public var isRecenteringOnOrientationChangeEnabled = false
+    public var longPressHandler: ((CGPoint) -> Void)?
     public var onCenterOffsetChange: ((CGPoint) -> Void)?
     public var onImageTransformationChange: ((Bool) -> Void)?
     public private(set) var isImageTransformed = false {
@@ -263,6 +264,9 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Private Methods
 
     private func setupGestureRecognizers() {
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
+        view.addGestureRecognizer(longPressGesture)
+
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
         view.addGestureRecognizer(panGesture)
 
@@ -277,6 +281,16 @@ public class SCTiledImageViewController: UIViewController {
         let orientation = UIDevice.current.orientation
         guard orientation.isPortrait || orientation.isLandscape, isRecenteringOnOrientationChangeEnabled else { return }
         recenter()
+    }
+
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+            let location = gesture.location(in: containerView)
+
+            if containerView.bounds.contains(location) {
+                longPressHandler?(location)
+            }
+        }
     }
 
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
