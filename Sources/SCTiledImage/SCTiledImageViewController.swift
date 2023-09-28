@@ -27,6 +27,7 @@ public class SCTiledImageViewController: UIViewController {
     public var longPressHandler: ((CGPoint) -> Void)?
     public var onCenterOffsetChange: ((CGPoint) -> Void)?
     public var onImageTransformationChange: ((Bool) -> Void)?
+    public var onRotation: ((Rotation) -> Void)?
     public private(set) var isImageTransformed = false {
         didSet {
             onImageTransformationChange?(isImageTransformed)
@@ -119,6 +120,7 @@ public class SCTiledImageViewController: UIViewController {
             centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
             isImageTransformed = false
             completion?()
+            onRotation?(.none)
         })
     }
 
@@ -353,6 +355,8 @@ public class SCTiledImageViewController: UIViewController {
 
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
         guard recognizer.state == .began || recognizer.state == .changed else { return }
+
+        onRotation?(.value(recognizer.rotation))
 
         let rotationCenter = CGPoint(
             x: recognizer.location(in: containerView).x - containerView.bounds.midX,
