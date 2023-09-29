@@ -254,10 +254,18 @@ public class SCTiledImageViewController: UIViewController {
         isImageTransformed = true
     }
 
-    public func centerCoordinatesInContainer(offset: CGPoint = .zero) -> CGPoint {
+    public func centerCoordinatesInContainer(offset: CGPoint = .zero, shouldBeInBounds: Bool = false) -> CGPoint {
         let initialCenter = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
         let withOffset = CGPoint(x: initialCenter.x + offset.x, y: initialCenter.y + offset.y)
-        let centerInContainer = view.convert(withOffset, to: containerView)
+        var centerInContainer = view.convert(withOffset, to: containerView)
+
+        if shouldBeInBounds {
+            let containerBounds = containerView.bounds
+            let clampedX = min(max(centerInContainer.x, containerBounds.minX), containerBounds.maxX)
+            let clampedY = min(max(centerInContainer.y, containerBounds.minY), containerBounds.maxY)
+            centerInContainer = CGPoint(x: clampedX, y: clampedY)
+        }
+
         return centerInContainer
     }
 
