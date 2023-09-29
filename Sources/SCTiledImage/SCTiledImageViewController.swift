@@ -27,8 +27,7 @@ public class SCTiledImageViewController: UIViewController {
     public var longPressHandler: ((CGPoint) -> Void)?
     public var onCenterOffsetChange: ((CGPoint) -> Void)?
     public var onImageTransformationChange: ((Bool) -> Void)?
-    public var onRotation: ((Transform) -> Void)?
-    public var onScale: ((Transform) -> Void)?
+    public var onTransform: ((Transform) -> Void)?
     public private(set) var isImageTransformed = false {
         didSet {
             onImageTransformationChange?(isImageTransformed)
@@ -120,8 +119,7 @@ public class SCTiledImageViewController: UIViewController {
             guard let self else { return }
             centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
             isImageTransformed = false
-            onRotation?(.none)
-            onScale?(.none)
+            onTransform?(.none)
             completion?()
         })
     }
@@ -217,7 +215,10 @@ public class SCTiledImageViewController: UIViewController {
     public func zoomAndScroll(to point: CGPoint, withScale scale: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
         guard let defaultScale, let imageSize = containerView.dataSource?.imageSize else { return }
 
-        let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).scaledBy(x: scale, y: scale)
+        onTransform?(.zoom(scale))
+
+        let rotation = atan2(containerView.transform.b, containerView.transform.a)
+        let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).rotated(by: rotation).scaledBy(x: scale, y: scale)
 
         let center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
         let newCenter = CGPoint(
@@ -233,6 +234,7 @@ public class SCTiledImageViewController: UIViewController {
 
             for overlayView in overlayViews {
                 if let overlayViewRelativeInitialTransform = overlayViewsRelativeInitialTransforms[overlayView.hash] {
+                    let rotation = atan2(overlayView.transform.b, overlayView.transform.a)
                     overlayView.transform = CGAffineTransform(
                         overlayViewRelativeInitialTransform.a * defaultScale * scale,
                         overlayViewRelativeInitialTransform.b * defaultScale * scale,
@@ -240,7 +242,7 @@ public class SCTiledImageViewController: UIViewController {
                         overlayViewRelativeInitialTransform.d * defaultScale * scale,
                         overlayViewRelativeInitialTransform.tx * defaultScale * scale,
                         overlayViewRelativeInitialTransform.ty * defaultScale * scale
-                    )
+                    ).rotated(by: rotation)
                     overlayView.center = newCenter
                 }
             }
@@ -315,7 +317,7 @@ public class SCTiledImageViewController: UIViewController {
     @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
         guard recognizer.state == .began || recognizer.state == .changed else { return }
 
-        onScale?(.value(recognizer.scale))
+        onTransform?(.scale(recognizer.scale))
 
         let pinchCenter = CGPoint(
             x: recognizer.location(in: containerView).x - containerView.bounds.midX,
@@ -360,7 +362,7 @@ public class SCTiledImageViewController: UIViewController {
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
         guard recognizer.state == .began || recognizer.state == .changed else { return }
 
-        onRotation?(.value(recognizer.rotation))
+        onTransform?(.rotation(recognizer.rotation))
 
         let rotationCenter = CGPoint(
             x: recognizer.location(in: containerView).x - containerView.bounds.midX,

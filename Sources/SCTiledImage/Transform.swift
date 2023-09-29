@@ -13,6 +13,8 @@ public enum Transform {
 
     // MARK: - Cases
 
-    case value(CGFloat)
+    case scale(CGFloat)
+    case zoom(CGFloat)
+    case rotation(CGFloat)
     case none
 }
