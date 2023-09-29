@@ -215,8 +215,6 @@ public class SCTiledImageViewController: UIViewController {
     public func zoomAndScroll(to point: CGPoint, withScale scale: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
         guard let defaultScale, let imageSize = containerView.dataSource?.imageSize else { return }
 
-        onTransform?(.zoom(scale))
-
         let rotation = atan2(containerView.transform.b, containerView.transform.a)
         let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).rotated(by: rotation).scaledBy(x: scale, y: scale)
 
@@ -248,11 +246,8 @@ public class SCTiledImageViewController: UIViewController {
             }
         }
 
-        if animated {
-            UIView.animate(withDuration: Constants.AnimationDuration.default) {
-                performTransform()
-            }
-        } else {
+        onTransform?(.zoom(scale))
+        UIView.animate(withDuration: animated ? Constants.AnimationDuration.default : .zero) {
             performTransform()
         }
 
