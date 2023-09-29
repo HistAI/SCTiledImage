@@ -16,5 +16,6 @@ public enum Transform {
     case scale(CGFloat)
     case zoom(CGFloat)
     case rotation(CGFloat)
+    case identityRotation
     case none
 }

@@ -215,8 +215,7 @@ public class SCTiledImageViewController: UIViewController {
     public func zoomAndScroll(to point: CGPoint, withScale scale: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
         guard let defaultScale, let imageSize = containerView.dataSource?.imageSize else { return }
 
-        let rotation = atan2(containerView.transform.b, containerView.transform.a)
-        let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).rotated(by: rotation).scaledBy(x: scale, y: scale)
+        let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).scaledBy(x: scale, y: scale)
 
         let center = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
         let newCenter = CGPoint(
@@ -232,7 +231,6 @@ public class SCTiledImageViewController: UIViewController {
 
             for overlayView in overlayViews {
                 if let overlayViewRelativeInitialTransform = overlayViewsRelativeInitialTransforms[overlayView.hash] {
-                    let rotation = atan2(overlayView.transform.b, overlayView.transform.a)
                     overlayView.transform = CGAffineTransform(
                         overlayViewRelativeInitialTransform.a * defaultScale * scale,
                         overlayViewRelativeInitialTransform.b * defaultScale * scale,
@@ -240,12 +238,13 @@ public class SCTiledImageViewController: UIViewController {
                         overlayViewRelativeInitialTransform.d * defaultScale * scale,
                         overlayViewRelativeInitialTransform.tx * defaultScale * scale,
                         overlayViewRelativeInitialTransform.ty * defaultScale * scale
-                    ).rotated(by: rotation)
+                    )
                     overlayView.center = newCenter
                 }
             }
         }
 
+        onTransform?(.identityRotation)
         onTransform?(.zoom(scale))
         UIView.animate(withDuration: animated ? Constants.AnimationDuration.default : .zero) {
             performTransform()
