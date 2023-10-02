@@ -24,7 +24,7 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Public Properties
 
     public var isRecenteringOnOrientationChangeEnabled = false
-    public var longPressHandler: ((CGPoint) -> Void)?
+    public var onLongPress: ((CGPoint) -> Void)?
     public var onCenterOffsetChange: ((CGPoint) -> Void)?
     public var onImageTransformationChange: ((Bool) -> Void)?
     public var onTransform: ((Transform) -> Void)?
@@ -296,7 +296,7 @@ public class SCTiledImageViewController: UIViewController {
             let location = gesture.location(in: containerView)
 
             if containerView.bounds.contains(location) {
-                longPressHandler?(location)
+                onLongPress?(location)
             }
         }
     }
