@@ -24,6 +24,7 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Public Properties
 
     public var isRecenteringOnOrientationChangeEnabled = false
+    public var onDefaultScaleSet: ((CGFloat) -> Void)?
     public var onLongPress: ((CGPoint) -> Void)?
     public var onCenterOffsetChange: ((CGPoint) -> Void)?
     public var onImageTransformationChange: ((Bool) -> Void)?
@@ -72,6 +73,8 @@ public class SCTiledImageViewController: UIViewController {
 
         containerView = SCTiledImageContainerView()
         containerView.setup(dataSource: dataSource)
+
+        onDefaultScaleSet?(defaultScale!)
 
         view.addSubview(containerView)
 
