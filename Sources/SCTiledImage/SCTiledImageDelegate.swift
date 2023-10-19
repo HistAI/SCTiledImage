@@ -13,10 +13,21 @@ public protocol SCTiledImageDelegate: AnyObject {
 
     // MARK: - Internal Methods
 
-    func defaultScaleSet(_ scale: CGFloat)
-    func longPress(in location: CGPoint)
-    func tap(in location: CGPoint)
-    func centerOffsetChanged(to location: CGPoint)
-    func imageTransformationChanged(_ isTransformed: Bool)
-    func transformed(_ transform: Transform)
+    func shouldIgnorePanGesture() -> Bool
+    func shouldIgnoreTapGesture() -> Bool
+    func shouldIgnoreLongPressGesture() -> Bool
+    func shouldIgnorePinchGesture() -> Bool
+    func shouldIgnoreRotationGesture() -> Bool
+
+    func didBeginTouches(at location: CGPoint)
+    func didMoveTouches(to location: CGPoint)
+    func didEndTouches(at location: CGPoint)
+
+    func didTap(at location: CGPoint)
+    func didLongPress(at location: CGPoint)
+
+    func didChangeImageTransformation(_ isTransformed: Bool)
+    func didApplyTransformation(_ transform: Transform)
+
+    func didSetDefaultScale(to scale: CGFloat)
 }
