@@ -23,16 +23,16 @@ public class SCTiledImageViewController: UIViewController {
 
     // MARK: - Public Properties
 
+    public private(set) var containerView = SCTiledImageContainerView()
+
+    public weak var delegate: SCTiledImageDelegate?
+
     public var isRecenteringOnOrientationChangeEnabled = false
-    public var onDefaultScaleSet: ((CGFloat) -> Void)?
-    public var onLongPress: ((CGPoint) -> Void)?
-    public var onCenterOffsetChange: ((CGPoint) -> Void)?
-    public var onImageTransformationChange: ((Bool) -> Void)?
-    public var onTransform: ((Transform) -> Void)?
+
     public private(set) var isImageTransformed = false {
         didSet {
-            onImageTransformationChange?(isImageTransformed)
-            onCenterOffsetChange?(centerOffset)
+            delegate?.imageTransformationChanged(isImageTransformed)
+            delegate?.centerOffsetChanged(to: centerOffset)
         }
     }
 
@@ -51,7 +51,6 @@ public class SCTiledImageViewController: UIViewController {
 
     // MARK: - Private Properties
 
-    private var containerView = SCTiledImageContainerView()
     private var centerDiff: CGPoint?
     private var initialScale: CGFloat = 1
     private var overlayViews: [UIView] = []
@@ -74,7 +73,7 @@ public class SCTiledImageViewController: UIViewController {
         containerView = SCTiledImageContainerView()
         containerView.setup(dataSource: dataSource)
 
-        onDefaultScaleSet?(defaultScale!)
+        delegate?.defaultScaleSet(defaultScale!)
 
         view.addSubview(containerView)
 
@@ -122,7 +121,7 @@ public class SCTiledImageViewController: UIViewController {
             guard let self else { return }
             centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
             isImageTransformed = false
-            onTransform?(.none)
+            delegate?.transformed(.none)
             completion?()
         })
     }
@@ -247,8 +246,9 @@ public class SCTiledImageViewController: UIViewController {
             }
         }
 
-        onTransform?(.identityRotation)
-        onTransform?(.zoom(scale))
+        delegate?.transformed(.identityRotation)
+        delegate?.transformed(.zoom(scale))
+
         UIView.animate(withDuration: animated ? Constants.AnimationDuration.default : .zero) {
             performTransform()
         }
@@ -275,6 +275,9 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Private Methods
 
     private func setupGestureRecognizers() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        view.addGestureRecognizer(tapGesture)
+
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
         view.addGestureRecognizer(longPressGesture)
 
@@ -294,12 +297,20 @@ public class SCTiledImageViewController: UIViewController {
         recenter()
     }
 
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: containerView)
+
+        if containerView.bounds.contains(location) {
+            delegate?.tap(in: location)
+        }
+    }
+
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         if gesture.state == .began {
             let location = gesture.location(in: containerView)
 
             if containerView.bounds.contains(location) {
-                onLongPress?(location)
+                delegate?.longPress(in: location)
             }
         }
     }
@@ -322,7 +333,7 @@ public class SCTiledImageViewController: UIViewController {
     @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
         guard recognizer.state == .began || recognizer.state == .changed else { return }
 
-        onTransform?(.scale(recognizer.scale))
+        delegate?.transformed(.scale(recognizer.scale))
 
         let pinchCenter = CGPoint(
             x: recognizer.location(in: containerView).x - containerView.bounds.midX,
@@ -367,7 +378,7 @@ public class SCTiledImageViewController: UIViewController {
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
         guard recognizer.state == .began || recognizer.state == .changed else { return }
 
-        onTransform?(.rotation(recognizer.rotation))
+        delegate?.transformed(.rotation(recognizer.rotation))
 
         let rotationCenter = CGPoint(
             x: recognizer.location(in: containerView).x - containerView.bounds.midX,

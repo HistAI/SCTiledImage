@@ -9,7 +9,7 @@ import UIKit
 
 // MARK: - SCTiledImageContainerView
 
-final class SCTiledImageContainerView: UIView {
+public final class SCTiledImageContainerView: UIView {
 
     // MARK: - Internal Properties
 
