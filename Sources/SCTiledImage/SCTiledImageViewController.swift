@@ -294,21 +294,16 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Private Methods
 
     private func setupGestureRecognizers() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        tapGesture.cancelsTouchesInView = false
-        view.addGestureRecognizer(tapGesture)
-
-        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
-        view.addGestureRecognizer(longPressGesture)
-
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
         panGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(panGesture)
 
         let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
+        pinchGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(pinchGesture)
 
         let rotationGesture = UIRotationGestureRecognizer(target: self, action: #selector(handleRotation))
+        rotationGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(rotationGesture)
     }
 
@@ -316,28 +311,6 @@ public class SCTiledImageViewController: UIViewController {
         let orientation = UIDevice.current.orientation
         guard orientation.isPortrait || orientation.isLandscape, isRecenteringOnOrientationChangeEnabled else { return }
         recenter()
-    }
-
-    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        let location = gesture.location(in: containerView)
-
-        if containerView.bounds.contains(location) {
-            delegate?.didTap(at: location)
-        }
-    }
-
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-
-        if let delegate, delegate.shouldIgnoreLongPressGesture() {
-            return
-        }
-
-        let location = gesture.location(in: containerView)
-
-        if containerView.bounds.contains(location) {
-            delegate?.didLongPress(at: location)
-        }
     }
 
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
