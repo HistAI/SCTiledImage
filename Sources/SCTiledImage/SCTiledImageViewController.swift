@@ -339,19 +339,19 @@ public class SCTiledImageViewController: UIViewController {
             return
         }
 
-        delegate?.didApplyTransformation(.scale(recognizer.scale))
-
-        let pinchCenter = CGPoint(
-            x: recognizer.location(in: containerView).x - containerView.bounds.midX,
-            y: recognizer.location(in: containerView).y - containerView.bounds.midY
-        )
-
         let scale: CGFloat
         if ProcessInfo.processInfo.isiOSAppOnMac {
             scale = 1 + (recognizer.scale - 1) / 5
         } else {
             scale = recognizer.scale
         }
+
+        delegate?.didApplyTransformation(.scale(scale))
+
+        let pinchCenter = CGPoint(
+            x: recognizer.location(in: containerView).x - containerView.bounds.midX,
+            y: recognizer.location(in: containerView).y - containerView.bounds.midY
+        )
 
         let transform = containerView.transform
             .translatedBy(x: pinchCenter.x, y: pinchCenter.y)
