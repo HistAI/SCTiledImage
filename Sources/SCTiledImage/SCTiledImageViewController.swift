@@ -42,12 +42,6 @@ public class SCTiledImageViewController: UIViewController {
         return (minContainerSize / minCanvasSize) * initialScale
     }
 
-    public var centerOffset: CGPoint {
-        let initialCenter = CGPoint(x: view.center.x - view.frame.minX, y: view.center.y - view.frame.minY)
-        let centerDiff = CGPoint(x: containerView.center.x - initialCenter.x, y: containerView.center.y - initialCenter.y)
-        return CGPoint(x: initialCenter.x + centerDiff.x, y: initialCenter.y + centerDiff.y)
-    }
-
     // MARK: - Private Properties
 
     private var centerDiff: CGPoint?
@@ -289,6 +283,53 @@ public class SCTiledImageViewController: UIViewController {
         }
 
         return centerInContainer
+    }
+
+    public func rotate(radians: CGFloat, animated: Bool) {
+        delegate?.didApplyTransformation(.rotation(radians))
+
+        let rotationCenter = containerView.center
+
+        let transform = containerView.transform
+            .translatedBy(x: rotationCenter.x, y: rotationCenter.y)
+            .rotated(by: radians)
+            .translatedBy(x: -rotationCenter.x, y: -rotationCenter.y)
+
+        let animations = { [weak self] in
+            guard let self else { return }
+
+            containerView.transform = transform
+
+            for overlayView in overlayViews {
+                let overlayTransform = overlayView.transform
+                    .translatedBy(x: rotationCenter.x, y: rotationCenter.y)
+                    .rotated(by: radians)
+                    .translatedBy(x: -rotationCenter.x, y: -rotationCenter.y)
+
+                overlayView.transform = overlayTransform
+            }
+        }
+
+        if animated {
+            UIView.animate(withDuration: Constants.AnimationDuration.default, animations: animations, completion: { [weak self] _ in
+                guard let self else { return }
+                if containerView.transform == .identity {
+                    isImageTransformed = false
+                } else {
+                    isImageTransformed = true
+                }
+            })
+        } else {
+            animations()
+
+            if containerView.transform == .identity {
+                isImageTransformed = false
+            } else {
+                isImageTransformed = true
+            }
+        }
+
+        centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
     }
 
     // MARK: - Private Methods
