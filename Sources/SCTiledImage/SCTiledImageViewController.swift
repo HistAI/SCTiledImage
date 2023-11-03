@@ -311,25 +311,14 @@ public class SCTiledImageViewController: UIViewController {
         }
 
         if animated {
-            UIView.animate(withDuration: Constants.AnimationDuration.default, animations: animations, completion: { [weak self] _ in
-                guard let self else { return }
-                if containerView.transform == .identity {
-                    isImageTransformed = false
-                } else {
-                    isImageTransformed = true
-                }
-            })
+            UIView.animate(withDuration: Constants.AnimationDuration.default, animations: animations)
         } else {
             animations()
-
-            if containerView.transform == .identity {
-                isImageTransformed = false
-            } else {
-                isImageTransformed = true
-            }
         }
 
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
+
+        isImageTransformed = true
     }
 
     // MARK: - Private Methods
