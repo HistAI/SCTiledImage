@@ -288,36 +288,36 @@ public class SCTiledImageViewController: UIViewController {
     public func rotate(radians: CGFloat, animated: Bool) {
         delegate?.didApplyTransformation(.rotation(radians))
 
-        let rotationCenter = containerView.center
+        let containerTransform = containerView.transform.rotated(by: radians)
 
-        let transform = containerView.transform
-            .translatedBy(x: rotationCenter.x, y: rotationCenter.y)
-            .rotated(by: radians)
-            .translatedBy(x: -rotationCenter.x, y: -rotationCenter.y)
-
-        let animations = { [weak self] in
+        let applyRotation = { [weak self] in
             guard let self else { return }
 
-            containerView.transform = transform
+            containerView.transform = containerTransform
 
-            for overlayView in overlayViews {
-                let overlayTransform = overlayView.transform
-                    .translatedBy(x: rotationCenter.x, y: rotationCenter.y)
-                    .rotated(by: radians)
-                    .translatedBy(x: -rotationCenter.x, y: -rotationCenter.y)
+            for overlayView in self.overlayViews {
+                if let initialRelativeTransform = self.overlayViewsRelativeInitialTransforms[overlayView.hash] {
+                    let resetScaleTransform = CGAffineTransform(
+                        scaleX: 1.0 / initialRelativeTransform.a,
+                        y: 1.0 / initialRelativeTransform.d
+                    )
+                    let resetOverlayTransform = overlayView.transform.concatenating(resetScaleTransform)
 
-                overlayView.transform = overlayTransform
+                    let rotatedTransform = resetOverlayTransform.rotated(by: radians)
+
+                    let finalTransform = rotatedTransform.concatenating(initialRelativeTransform)
+                    overlayView.transform = finalTransform
+                }
             }
         }
 
         if animated {
-            UIView.animate(withDuration: Constants.AnimationDuration.default, animations: animations)
+            UIView.animate(withDuration: Constants.AnimationDuration.default, animations: applyRotation)
         } else {
-            animations()
+            applyRotation()
         }
 
         centerDiff = CGPoint(x: containerView.center.x - view.center.x, y: containerView.center.y - view.center.y)
-
         isImageTransformed = true
     }
 
