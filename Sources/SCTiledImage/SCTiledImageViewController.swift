@@ -24,11 +24,11 @@ public class SCTiledImageViewController: UIViewController {
     // MARK: - Public Properties
 
     public var currentTransform: CGAffineTransform {
-        containerView?.transform ?? .identity
+        containerView.transform
     }
 
     public var containerSize: CGSize {
-        containerView?.bounds.size ?? .zero
+        containerView.bounds.size
     }
 
     public private(set) var containerView = SCTiledImageContainerView()
