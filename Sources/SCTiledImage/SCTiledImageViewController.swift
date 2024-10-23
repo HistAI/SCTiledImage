@@ -303,7 +303,8 @@ public class SCTiledImageViewController: UIViewController {
     }
 
     public func containerToImageCoordinates(_ point: CGPoint, imageSize: CGSize) -> CGPoint {
-        let transformedPoint = point.applying(containerView.transform.inverted())
+        let invertedTransform = containerView.transform.inverted()
+        let transformedPoint = point.applying(invertedTransform)
         let scale = containerView.bounds.width / imageSize.width
         return CGPoint(
             x: transformedPoint.x / scale,
