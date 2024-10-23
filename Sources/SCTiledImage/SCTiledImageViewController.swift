@@ -285,6 +285,16 @@ public class SCTiledImageViewController: UIViewController {
         return centerInContainer
     }
 
+    public func containerToImageCoordinates(_ point: CGPoint) -> CGPoint {
+        guard let imageView = imageView else { return point }
+        let transformedPoint = point.applying(imageView.transform.inverted())
+        let scale = imageView.frame.width / (metadata?.size.width ?? 1)
+        return CGPoint(
+            x: transformedPoint.x / scale,
+            y: transformedPoint.y / scale
+        )
+    }
+
     public func rotate(radians: CGFloat, animated: Bool) {
         delegate?.didApplyTransformation(.rotation(radians))
 
