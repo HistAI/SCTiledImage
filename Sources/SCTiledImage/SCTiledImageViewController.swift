@@ -23,6 +23,14 @@ public class SCTiledImageViewController: UIViewController {
 
     // MARK: - Public Properties
 
+    public var currentTransform: CGAffineTransform {
+        containerView?.transform ?? .identity
+    }
+
+    public var containerSize: CGSize {
+        containerView?.bounds.size ?? .zero
+    }
+
     public private(set) var containerView = SCTiledImageContainerView()
 
     public weak var delegate: SCTiledImageDelegate?
