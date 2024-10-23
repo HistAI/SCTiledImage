@@ -293,14 +293,18 @@ public class SCTiledImageViewController: UIViewController {
         return centerInContainer
     }
 
-    public func containerToImageCoordinates(
-        _ point: CGPoint,
-        transform: CGAffineTransform,
-        imageSize: CGSize,
-        containerSize: CGSize
-    ) -> CGPoint {
-        let transformedPoint = point.applying(transform.inverted())
-        let scale = containerSize.width / imageSize.width
+    public func imageToContainerCoordinates(_ point: CGPoint, imageSize: CGSize) -> CGPoint {
+        let scale = containerView.bounds.width / imageSize.width
+        let scaledPoint = CGPoint(
+            x: point.x * scale,
+            y: point.y * scale
+        )
+        return scaledPoint.applying(containerView.transform)
+    }
+
+    public func containerToImageCoordinates(_ point: CGPoint, imageSize: CGSize) -> CGPoint {
+        let transformedPoint = point.applying(containerView.transform.inverted())
+        let scale = containerView.bounds.width / imageSize.width
         return CGPoint(
             x: transformedPoint.x / scale,
             y: transformedPoint.y / scale
