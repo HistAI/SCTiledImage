@@ -23,7 +23,19 @@ public class SCTiledImageViewController: UIViewController {
 
     // MARK: - Public Properties
 
+    public var currentTransform: CGAffineTransform {
+        containerView.transform
+    }
+
+    public var containerSize: CGSize {
+        containerView.bounds.size
+    }
+
     public private(set) var containerView = SCTiledImageContainerView()
+
+    public var dataSource: SCTiledImageViewDataSource? {
+        containerView.dataSource
+    }
 
     public weak var delegate: SCTiledImageDelegate?
 
@@ -36,7 +48,7 @@ public class SCTiledImageViewController: UIViewController {
     }
 
     public var defaultScale: CGFloat? {
-        guard let imageSize = containerView.dataSource?.imageSize else { return nil }
+        guard let imageSize = dataSource?.imageSize else { return nil }
         let minContainerSize = min(view.bounds.width, view.bounds.height)
         let minCanvasSize = max(imageSize.width, imageSize.height)
         return (minContainerSize / minCanvasSize) * initialScale
@@ -56,19 +68,19 @@ public class SCTiledImageViewController: UIViewController {
         view.clipsToBounds = true
     }
 
-    public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: containerView)
         delegate?.didBeginTouches(at: location)
     }
 
-    public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesMoved(_ touches: Set<UITouch>, with _: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: containerView)
         delegate?.didMoveTouches(to: location)
     }
 
-    public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override public func touchesEnded(_ touches: Set<UITouch>, with _: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: containerView)
         delegate?.didEndTouches(at: location)
@@ -161,7 +173,7 @@ public class SCTiledImageViewController: UIViewController {
         guard let defaultScale,
               !view.subviews.contains(overlayView),
               view.subviews.contains(containerView),
-              containerView.dataSource != nil else { return }
+              dataSource != nil else { return }
         removeOverlayView(overlayView)
 
         switch position {
@@ -193,16 +205,16 @@ public class SCTiledImageViewController: UIViewController {
                 overlayView.topAnchor.constraint(equalTo: containerView.topAnchor),
                 overlayView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
                 overlayView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                overlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+                overlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
             ])
         } else {
             overlayView.translatesAutoresizingMaskIntoConstraints = false
-            let imageSize = containerView.dataSource?.imageSize ?? .zero
+            let imageSize = dataSource?.imageSize ?? .zero
             NSLayoutConstraint.activate([
                 overlayView.widthAnchor.constraint(equalToConstant: imageSize.width * defaultScale),
                 overlayView.heightAnchor.constraint(equalToConstant: imageSize.height * defaultScale),
                 overlayView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-                overlayView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+                overlayView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             ])
         }
     }
@@ -228,7 +240,7 @@ public class SCTiledImageViewController: UIViewController {
     }
 
     public func zoomAndScroll(to point: CGPoint, withScale scale: CGFloat, andOffset offset: CGPoint, animated: Bool = true) {
-        guard let defaultScale, let imageSize = containerView.dataSource?.imageSize else { return }
+        guard let defaultScale, let imageSize = dataSource?.imageSize else { return }
 
         let transform = CGAffineTransform(scaleX: defaultScale, y: defaultScale).scaledBy(x: scale, y: scale)
 
@@ -283,6 +295,29 @@ public class SCTiledImageViewController: UIViewController {
         }
 
         return centerInContainer
+    }
+
+    public func convertViewToImageCoordinates(fromView view: UIView, point: CGPoint) -> CGPoint? {
+        guard let dataSource else { return nil }
+
+        let containerPoint = view.convert(point, to: containerView)
+        let imagePoint = CGPoint(
+            x: containerPoint.x * (dataSource.imageSize.width / containerView.bounds.width),
+            y: containerPoint.y * (dataSource.imageSize.height / containerView.bounds.height)
+        )
+
+        return imagePoint
+    }
+
+    public func convertImageToViewCoordinates(_ imagePoint: CGPoint, toView view: UIView) -> CGPoint? {
+        guard let dataSource else { return nil }
+
+        let containerPoint = CGPoint(
+            x: imagePoint.x * (containerView.bounds.width / dataSource.imageSize.width),
+            y: imagePoint.y * (containerView.bounds.height / dataSource.imageSize.height)
+        )
+
+        return containerView.convert(containerPoint, to: view)
     }
 
     public func rotate(radians: CGFloat, animated: Bool) {
@@ -462,7 +497,7 @@ extension SCTiledImageViewController: UIGestureRecognizerDelegate {
 
     public func gestureRecognizer(
         _: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith shouldRecognizeSimultaneouslyWithGestureRecognizer: UIGestureRecognizer
+        shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer
     ) -> Bool {
         true
     }
